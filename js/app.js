@@ -36,7 +36,11 @@ const App = {
                 this.renderWorkouts();
                 break;
             case 'exercises':
-                this.renderExercises();
+                if (params[0] === 'detail' && params[1]) {
+                    this.renderExerciseDetail(params[1]);
+                } else {
+                    this.renderExercises();
+                }
                 break;
             case 'nutrition':
                 this.renderNutrition();
@@ -206,6 +210,8 @@ const App = {
                     </div>
                     <input type="text" name="muscleGroups" placeholder="muscle groups (comma separated)">
                     <textarea name="description" placeholder="description..." rows="3"></textarea>
+                    <input type="text" name="videoUrl" placeholder="video url (optional)">
+                    <textarea name="variants" placeholder="exercise variants (one per line: name | url)" rows="3"></textarea>
                     <div class="flex">
                         <button type="submit">save exercise</button>
                         <button type="button" class="btn-secondary" onclick="App.hideExerciseForm()">cancel</button>
@@ -215,12 +221,12 @@ const App = {
 
             <div class="grid">
                 ${exercises.map(ex => `
-                    <div class="card">
+                    <div class="card" style="cursor: pointer;" onclick="window.location.hash = '#exercises/detail/${ex.id}'">
                         <div class="card-title">${ex.name}</div>
                         <div class="card-meta">${ex.category} • ${ex.equipment}</div>
                         ${ex.muscleGroups.length > 0 ? `<p>${ex.muscleGroups.join(', ')}</p>` : ''}
-                        ${ex.description ? `<p style="color: #777; margin-top: 0.5rem;">${ex.description}</p>` : ''}
-                        <button onclick="App.deleteExercise('${ex.id}')" class="btn-secondary" style="margin-top: 1rem;">delete</button>
+                        ${ex.description ? `<p style="color: #777; margin-top: 0.5rem; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${ex.description}</p>` : ''}
+                        <button onclick="event.stopPropagation(); App.deleteExercise('${ex.id}')" class="btn-secondary" style="margin-top: 1rem;">delete</button>
                     </div>
                 `).join('')}
             </div>
@@ -239,12 +245,26 @@ const App = {
         e.preventDefault();
         const formData = new FormData(e.target);
         const muscleGroups = formData.get('muscleGroups').split(',').map(m => m.trim()).filter(m => m);
+
+        // Parse variants from textarea (format: "name | url" per line)
+        const variantsText = formData.get('variants') || '';
+        const variants = variantsText
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line && line.includes('|'))
+            .map(line => {
+                const [name, url] = line.split('|').map(s => s.trim());
+                return { name, url };
+            });
+
         const exercise = Models.Exercise.create({
             name: formData.get('name'),
             category: formData.get('category'),
             equipment: formData.get('equipment'),
             muscleGroups: muscleGroups,
-            description: formData.get('description')
+            description: formData.get('description'),
+            videoUrl: formData.get('videoUrl'),
+            variants: variants
         });
         Models.Exercise.save(exercise);
         e.target.reset();
@@ -254,8 +274,127 @@ const App = {
     deleteExercise(id) {
         if (confirm('delete this exercise?')) {
             Models.Exercise.delete(id);
-            this.renderExercises();
+            // Redirect to exercises list if we're on detail page, otherwise just re-render
+            if (window.location.hash.includes('/detail/')) {
+                window.location.hash = '#exercises';
+            } else {
+                this.renderExercises();
+            }
         }
+    },
+
+    // Exercise detail view
+    renderExerciseDetail(id) {
+        const exercise = Models.Exercise.getById(id);
+
+        if (!exercise) {
+            this.render('<h2>exercise not found</h2><p><a href="#exercises">back to exercises</a></p>');
+            return;
+        }
+
+        this.render(`
+            <div class="mb-2">
+                <a href="#exercises" class="btn-secondary" style="display: inline-block; margin-bottom: 1rem;">← back to exercises</a>
+            </div>
+
+            <h2>${exercise.name}</h2>
+            <div class="card-meta mb-2">${exercise.category} • ${exercise.equipment}</div>
+
+            <div class="mb-2">
+                <h3>muscle groups</h3>
+                ${exercise.muscleGroups.length > 0
+                    ? `<p>${exercise.muscleGroups.map(mg => `<span style="display: inline-block; background: var(--bg-dark); border: 1px solid var(--border); padding: 0.25rem 0.5rem; margin: 0.25rem 0.25rem 0.25rem 0;">${mg}</span>`).join('')}</p>`
+                    : '<p style="color: #777;">no muscle groups specified</p>'}
+            </div>
+
+            <div class="mb-2">
+                <h3>description</h3>
+                ${exercise.description
+                    ? `<p>${exercise.description}</p>`
+                    : '<p style="color: #777;">no description available</p>'}
+            </div>
+
+            ${exercise.videoUrl ? `
+            <div class="mb-2">
+                <h3>video reference</h3>
+                <p><a href="${exercise.videoUrl}" target="_blank" rel="noopener noreferrer">${exercise.videoUrl}</a></p>
+            </div>
+            ` : ''}
+
+            <div class="mb-2">
+                <h3>exercise variants</h3>
+                ${exercise.variants && exercise.variants.length > 0
+                    ? `<ul>${exercise.variants.map(v => `<li><a href="${v.url}" target="_blank" rel="noopener noreferrer">${v.name}</a></li>`).join('')}</ul>`
+                    : '<p style="color: #777;">no variants available</p>'}
+            </div>
+
+            <div class="flex mt-2" style="margin-top: 2rem;">
+                <button onclick="App.showEditExerciseForm('${id}')" class="btn-secondary">edit exercise</button>
+                <button onclick="App.deleteExercise('${id}')" class="btn-secondary" style="border-color: var(--accent); color: var(--accent);">delete exercise</button>
+            </div>
+
+            <div id="edit-exercise-form" class="hidden mt-2" style="margin-top: 2rem;">
+                <h3>edit exercise</h3>
+                <form onsubmit="App.updateExercise(event, '${id}')">
+                    <div class="form-grid">
+                        <input type="text" name="name" placeholder="exercise name" value="${exercise.name}" required>
+                        <select name="category">
+                            <option value="strength" ${exercise.category === 'strength' ? 'selected' : ''}>strength</option>
+                            <option value="cardio" ${exercise.category === 'cardio' ? 'selected' : ''}>cardio</option>
+                            <option value="flexibility" ${exercise.category === 'flexibility' ? 'selected' : ''}>flexibility</option>
+                            <option value="mobility" ${exercise.category === 'mobility' ? 'selected' : ''}>mobility</option>
+                        </select>
+                        <input type="text" name="equipment" placeholder="equipment (e.g., barbell)" value="${exercise.equipment}">
+                    </div>
+                    <input type="text" name="muscleGroups" placeholder="muscle groups (comma separated)" value="${exercise.muscleGroups.join(', ')}">
+                    <textarea name="description" placeholder="description..." rows="4">${exercise.description}</textarea>
+                    <input type="text" name="videoUrl" placeholder="video url (optional)" value="${exercise.videoUrl}">
+                    <textarea name="variants" placeholder="variants (one per line: name | url)" rows="4">${exercise.variants.map(v => `${v.name} | ${v.url}`).join('\n')}</textarea>
+                    <div class="flex">
+                        <button type="submit">update exercise</button>
+                        <button type="button" class="btn-secondary" onclick="App.hideEditExerciseForm()">cancel</button>
+                    </div>
+                </form>
+            </div>
+        `);
+    },
+
+    showEditExerciseForm() {
+        document.getElementById('edit-exercise-form').classList.remove('hidden');
+    },
+
+    hideEditExerciseForm() {
+        document.getElementById('edit-exercise-form').classList.add('hidden');
+    },
+
+    updateExercise(e, id) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const muscleGroups = formData.get('muscleGroups').split(',').map(m => m.trim()).filter(m => m);
+
+        // Parse variants from textarea (format: "name | url" per line)
+        const variantsText = formData.get('variants');
+        const variants = variantsText
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line && line.includes('|'))
+            .map(line => {
+                const [name, url] = line.split('|').map(s => s.trim());
+                return { name, url };
+            });
+
+        const updates = {
+            name: formData.get('name'),
+            category: formData.get('category'),
+            equipment: formData.get('equipment'),
+            muscleGroups: muscleGroups,
+            description: formData.get('description'),
+            videoUrl: formData.get('videoUrl'),
+            variants: variants
+        };
+
+        Models.Exercise.update(id, updates);
+        this.renderExerciseDetail(id);
     },
 
     // Nutrition view
