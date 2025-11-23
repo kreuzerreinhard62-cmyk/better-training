@@ -33,7 +33,11 @@ const App = {
                 this.renderDashboard();
                 break;
             case 'workouts':
-                this.renderWorkouts();
+                if (params[0] === 'detail' && params[1]) {
+                    this.renderWorkoutDetail(params[1]);
+                } else {
+                    this.renderWorkouts();
+                }
                 break;
             case 'exercises':
                 if (params[0] === 'detail' && params[1]) {
@@ -99,7 +103,7 @@ const App = {
             <h3>recent workouts</h3>
             <div class="grid">
                 ${workouts.length > 0 ? workouts.map(w => `
-                    <div class="card">
+                    <div class="card" style="cursor: pointer;" onclick="window.location.hash = '#workouts/detail/${w.id}'">
                         <div class="card-title">${w.name}</div>
                         <div class="card-meta">${w.date} • ${w.duration} min</div>
                         <p>${w.exercises.length} exercises • ${w.difficulty}</p>
@@ -142,12 +146,12 @@ const App = {
 
             <div class="grid">
                 ${workouts.map(w => `
-                    <div class="card">
+                    <div class="card" style="cursor: pointer;" onclick="window.location.hash = '#workouts/detail/${w.id}'">
                         <div class="card-title">${w.name}</div>
                         <div class="card-meta">${w.date} • ${w.duration} min</div>
                         <p>${w.exercises.length} exercises • ${w.difficulty}</p>
                         ${w.notes ? `<p style="color: #777; margin-top: 0.5rem;">${w.notes}</p>` : ''}
-                        <button onclick="App.deleteWorkout('${w.id}')" class="btn-secondary" style="margin-top: 1rem;">delete</button>
+                        <button onclick="event.stopPropagation(); App.deleteWorkout('${w.id}')" class="btn-secondary" style="margin-top: 1rem;">delete</button>
                     </div>
                 `).join('')}
             </div>
@@ -183,6 +187,191 @@ const App = {
             Models.Workout.delete(id);
             this.renderWorkouts();
         }
+    },
+
+    // Workout detail view
+    renderWorkoutDetail(id) {
+        const workout = Models.Workout.getById(id);
+
+        if (!workout) {
+            this.render('<h2>workout not found</h2><p><a href="#workouts">back to workouts</a></p>');
+            return;
+        }
+
+        const allExercises = Models.Exercise.getAll();
+
+        this.render(`
+            <div class="mb-2">
+                <a href="#workouts" class="btn-secondary" style="display: inline-block; margin-bottom: 1rem;">← back to workouts</a>
+            </div>
+
+            <h2>${workout.name}</h2>
+            <div class="card-meta mb-2">${workout.date} • ${workout.duration} min • ${workout.difficulty}</div>
+            ${workout.notes ? `<p style="margin-bottom: 2rem;">${workout.notes}</p>` : ''}
+
+            <div class="flex-between mb-2">
+                <h3>exercises</h3>
+                <button onclick="App.showAddExerciseForm('${id}')">+ add exercise</button>
+            </div>
+
+            <div id="add-exercise-form" class="hidden mb-2">
+                <h4>select exercise</h4>
+                <form onsubmit="App.addExerciseToWorkout(event, '${id}')">
+                    <select name="exerciseId" required style="width: 100%; margin-bottom: 1rem;">
+                        <option value="">choose an exercise...</option>
+                        ${allExercises.map(ex => `
+                            <option value="${ex.id}">${ex.name} (${ex.category})</option>
+                        `).join('')}
+                    </select>
+                    <div class="flex">
+                        <button type="submit">add to workout</button>
+                        <button type="button" class="btn-secondary" onclick="App.hideAddExerciseForm()">cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="mb-2">
+                ${workout.exercises.length === 0 ? `
+                    <p style="color: #777;">no exercises yet. add one to start tracking sets.</p>
+                ` : workout.exercises.map((workoutEx, exIndex) => {
+                    const exercise = Models.Exercise.getById(workoutEx.exerciseId);
+                    if (!exercise) return '';
+
+                    return `
+                        <div class="card mb-2" style="margin-bottom: 1rem;">
+                            <div class="flex-between">
+                                <div>
+                                    <div class="card-title">${exercise.name}</div>
+                                    <div class="card-meta">${exercise.category} • ${exercise.equipment}</div>
+                                </div>
+                                <button onclick="App.removeExerciseFromWorkout('${id}', ${exIndex})" class="btn-secondary">remove</button>
+                            </div>
+
+                            <h4 style="margin-top: 1rem;">sets</h4>
+                            ${workoutEx.sets.length === 0 ? `
+                                <p style="color: #777; font-size: 0.9rem;">no sets logged yet</p>
+                            ` : `
+                                <table style="margin-bottom: 1rem;">
+                                    <thead>
+                                        <tr>
+                                            <th>set</th>
+                                            <th>reps</th>
+                                            <th>weight (kg)</th>
+                                            <th>notes</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${workoutEx.sets.map((set, setIndex) => `
+                                            <tr>
+                                                <td>${setIndex + 1}</td>
+                                                <td>${set.reps || '-'}</td>
+                                                <td>${set.weight || '-'}</td>
+                                                <td style="color: #777; font-size: 0.85rem;">${set.notes || '-'}</td>
+                                                <td><button onclick="App.removeSetFromExercise('${id}', ${exIndex}, ${setIndex})" class="btn-secondary">×</button></td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            `}
+
+                            <button onclick="App.showAddSetForm('${id}', ${exIndex})" class="btn-secondary">+ add set</button>
+
+                            <div id="add-set-form-${exIndex}" class="hidden" style="margin-top: 1rem; padding: 1rem; border: 1px solid var(--border); background: var(--bg-dark);">
+                                <h5>add set</h5>
+                                <form onsubmit="App.addSetToExercise(event, '${id}', ${exIndex})">
+                                    <div class="form-grid">
+                                        <input type="number" name="reps" placeholder="reps" min="0">
+                                        <input type="number" name="weight" placeholder="weight (kg)" step="0.5" min="0">
+                                    </div>
+                                    <input type="text" name="notes" placeholder="notes (optional)" style="margin-bottom: 1rem;">
+                                    <div class="flex">
+                                        <button type="submit">save set</button>
+                                        <button type="button" class="btn-secondary" onclick="App.hideAddSetForm(${exIndex})">cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+
+            <div class="flex mt-2" style="margin-top: 2rem;">
+                <button onclick="App.deleteWorkout('${id}')" class="btn-secondary" style="border-color: var(--accent); color: var(--accent);">delete workout</button>
+            </div>
+        `);
+    },
+
+    showAddExerciseForm() {
+        document.getElementById('add-exercise-form').classList.remove('hidden');
+    },
+
+    hideAddExerciseForm() {
+        document.getElementById('add-exercise-form').classList.add('hidden');
+    },
+
+    addExerciseToWorkout(e, workoutId) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const exerciseId = formData.get('exerciseId');
+
+        if (!exerciseId) return;
+
+        const workout = Models.Workout.getById(workoutId);
+
+        // Check if exercise already exists in workout
+        const alreadyExists = workout.exercises.some(ex => ex.exerciseId === exerciseId);
+        if (alreadyExists) {
+            alert('this exercise is already in the workout');
+            return;
+        }
+
+        workout.exercises.push({
+            exerciseId: exerciseId,
+            sets: []
+        });
+
+        Models.Workout.update(workoutId, { exercises: workout.exercises });
+        this.renderWorkoutDetail(workoutId);
+    },
+
+    removeExerciseFromWorkout(workoutId, exerciseIndex) {
+        if (confirm('remove this exercise from the workout?')) {
+            const workout = Models.Workout.getById(workoutId);
+            workout.exercises.splice(exerciseIndex, 1);
+            Models.Workout.update(workoutId, { exercises: workout.exercises });
+            this.renderWorkoutDetail(workoutId);
+        }
+    },
+
+    showAddSetForm(workoutId, exerciseIndex) {
+        document.getElementById(`add-set-form-${exerciseIndex}`).classList.remove('hidden');
+    },
+
+    hideAddSetForm(exerciseIndex) {
+        document.getElementById(`add-set-form-${exerciseIndex}`).classList.add('hidden');
+    },
+
+    addSetToExercise(e, workoutId, exerciseIndex) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+
+        const workout = Models.Workout.getById(workoutId);
+        workout.exercises[exerciseIndex].sets.push({
+            reps: parseInt(formData.get('reps')) || 0,
+            weight: parseFloat(formData.get('weight')) || 0,
+            notes: formData.get('notes') || ''
+        });
+
+        Models.Workout.update(workoutId, { exercises: workout.exercises });
+        this.renderWorkoutDetail(workoutId);
+    },
+
+    removeSetFromExercise(workoutId, exerciseIndex, setIndex) {
+        const workout = Models.Workout.getById(workoutId);
+        workout.exercises[exerciseIndex].sets.splice(setIndex, 1);
+        Models.Workout.update(workoutId, { exercises: workout.exercises });
+        this.renderWorkoutDetail(workoutId);
     },
 
     // Exercises view
