@@ -7,16 +7,16 @@
 **Status:** Initial Setup
 
 ### Purpose
-<!-- Describe the main purpose and goals of this project -->
-This project aims to [INSERT PROJECT DESCRIPTION HERE].
+A lightweight, modern single-page application for tracking fitness training, workouts, exercises, nutrition, and physiological metrics. The project emphasizes simplicity, minimal dependencies, and a rough, brutalist-inspired design aesthetic.
 
 ### Tech Stack
-<!-- List the primary technologies, frameworks, and tools used -->
-- **Language(s):** [To be determined]
-- **Framework(s):** [To be determined]
-- **Build Tools:** [To be determined]
-- **Testing:** [To be determined]
-- **Package Manager:** [To be determined]
+- **Language(s):** Vanilla JavaScript (ES6+), HTML5, CSS3
+- **Framework(s):** None (framework-free by design)
+- **Build Tools:** None (no build process required)
+- **Testing:** Manual testing (no automated tests)
+- **Package Manager:** None (zero npm dependencies)
+- **Storage:** LocalStorage (client-side browser storage)
+- **Architecture:** Hash-based SPA routing, MVC-inspired pattern
 
 ---
 
@@ -24,16 +24,27 @@ This project aims to [INSERT PROJECT DESCRIPTION HERE].
 
 ```
 better-training/
-├── [To be populated as project develops]
+├── index.html          # Main SPA entry point
+├── css/
+│   └── style.css       # Brutalist-inspired styling
+├── js/
+│   ├── app.js          # Main app logic, routing, and views
+│   ├── db.js           # LocalStorage database wrapper
+│   └── models.js       # Data models for all entities
+├── CLAUDE.md           # AI assistant guide (this file)
+└── README.md           # Project documentation
 ```
 
 ### Key Directories
-<!-- Describe the purpose of each major directory -->
-- **[directory]**: [purpose]
+- **css/**: Contains all stylesheets (currently just style.css)
+- **js/**: Contains all JavaScript files (app logic, database, models)
 
 ### Important Files
-<!-- List critical configuration and documentation files -->
-- **[file]**: [purpose]
+- **index.html**: Main entry point - contains nav structure and loads all scripts
+- **js/app.js**: Core application logic, SPA routing, and view rendering
+- **js/db.js**: Simple database abstraction layer for LocalStorage
+- **js/models.js**: Data models for Exercise, Workout, Nutrition, Physiology, Profile
+- **css/style.css**: Brutalist-inspired design system with dark theme
 
 ---
 
@@ -83,14 +94,16 @@ better-training/
 ## Code Conventions
 
 ### Style Guidelines
-<!-- Define coding style preferences -->
-- **Indentation:** [tabs/spaces and size]
-- **Line Length:** [max characters]
+- **Indentation:** 4 spaces
+- **Line Length:** No strict limit, but keep reasonable (~100-120 chars)
 - **Naming Conventions:**
-  - Variables: [convention]
-  - Functions: [convention]
-  - Classes: [convention]
-  - Constants: [convention]
+  - Variables: camelCase (e.g., `workoutData`, `exerciseList`)
+  - Functions: camelCase (e.g., `renderDashboard()`, `saveWorkout()`)
+  - Objects/Namespaces: PascalCase (e.g., `App`, `Models`, `DB`)
+  - Constants: camelCase for config, UPPER_SNAKE for true constants
+- **Strings:** Single quotes for JS, double quotes for HTML attributes
+- **CSS:** lowercase with hyphens (e.g., `.nav-title`, `--accent`)
+- **Design:** Brutalist aesthetic - bold, minimal, high contrast, no gradients
 
 ### Best Practices
 
@@ -132,27 +145,48 @@ better-training/
 
 ### Setup and Installation
 ```bash
-# To be filled in once project structure is established
+# Clone the repository
+git clone <repo-url>
+cd better-training
+
+# No installation required! Just open index.html
 ```
 
 ### Running the Application
 ```bash
-# To be filled in
+# Option 1: Open directly in browser
+open index.html  # macOS
+xdg-open index.html  # Linux
+start index.html  # Windows
+
+# Option 2: Use a simple HTTP server (recommended for development)
+python3 -m http.server 8000
+# Then visit http://localhost:8000
+
+# Option 3: Use any other local server
+npx serve .
 ```
 
 ### Running Tests
 ```bash
-# To be filled in
+# No automated tests - manual testing only
+# Open the app in a browser and test features manually
 ```
 
 ### Linting and Formatting
 ```bash
-# To be filled in
+# No linters configured - keep code clean manually
+# Follow the style guidelines in this document
 ```
 
 ### Building for Production
 ```bash
-# To be filled in
+# No build process needed!
+# Just deploy the files to any static hosting:
+# - GitHub Pages
+# - Netlify
+# - Vercel
+# - Any HTTP server
 ```
 
 ---
@@ -160,53 +194,75 @@ better-training/
 ## Architecture and Design Patterns
 
 ### High-Level Architecture
-<!-- Describe the overall architecture -->
-[To be documented as project develops]
+Single-page application using hash-based routing with a simple MVC-inspired pattern:
+- **Model**: Data models in `models.js` handle business logic and data structure
+- **View**: HTML templates rendered dynamically by `app.js` functions
+- **Controller**: `App` object manages routing, user interactions, and view updates
+- **Storage**: `DB` object provides abstraction over LocalStorage
 
 ### Design Patterns Used
-<!-- List and explain design patterns employed -->
-- [Pattern]: [Usage and rationale]
+- **Module Pattern**: `App`, `Models`, `DB` are singleton objects that encapsulate functionality
+- **Repository Pattern**: `DB` object provides CRUD operations abstraction
+- **Factory Pattern**: Model objects have `create()` methods for object creation
+- **Hash Routing**: URL hash changes trigger view updates without page reloads
 
 ### Key Components
-<!-- Describe major components and their interactions -->
-- **[Component]**: [Description and responsibilities]
+- **App (app.js)**: Main controller - handles routing, view rendering, user interactions
+- **DB (db.js)**: Data persistence layer - wraps LocalStorage with CRUD operations
+- **Models (models.js)**: Business logic and data structures for all entities
+- **Views**: Dynamically generated HTML strings returned by render functions
 
 ### Data Flow
-<!-- Explain how data moves through the system -->
-[To be documented]
+1. User interacts with UI (clicks link, submits form)
+2. Event handler in `App` processes the action
+3. Data is saved/retrieved via `Models` which use `DB`
+4. `DB` reads/writes to LocalStorage
+5. View is re-rendered with updated data
+6. HTML is injected into the DOM
 
 ---
 
 ## Dependencies and External Services
 
 ### Critical Dependencies
-<!-- List important dependencies and their purposes -->
-- **[Package]**: [Purpose] - [Documentation link]
+**None!** This project has zero dependencies by design. Everything runs in the browser using:
+- Vanilla JavaScript (ES6+)
+- Web Storage API (LocalStorage)
+- Native browser capabilities
 
 ### External Services
-<!-- Document external APIs, databases, or services -->
-- **[Service]**: [Purpose] - [Authentication method]
+**None.** All data is stored locally in the browser. No external APIs, databases, or authentication services are used.
 
 ### Environment Variables
-<!-- List required environment variables -->
-- `[VAR_NAME]`: [Description] - [Default/Example]
+**None required.** The application is purely client-side and requires no configuration.
 
 ---
 
 ## Testing Strategy
 
 ### Test Types
-- **Unit Tests:** [Location and naming convention]
-- **Integration Tests:** [Location and approach]
-- **E2E Tests:** [If applicable]
+- **Manual Testing**: Primary testing method - test features in the browser
+- **Unit Tests**: Not implemented (no test framework)
+- **Integration Tests**: Not implemented
+- **E2E Tests**: Not applicable
 
 ### Test Coverage Goals
-- Minimum coverage: [percentage]
-- Critical paths: [100% or specific requirements]
+Manual testing should cover:
+- All CRUD operations for each data type (Exercise, Workout, Nutrition, Physiology, Profile)
+- Navigation between all views
+- Form validation and error handling
+- Data export/import functionality
+- LocalStorage persistence across page reloads
 
 ### Running Specific Tests
 ```bash
-# To be filled in
+# Manual testing checklist:
+# 1. Open index.html in browser
+# 2. Test each view (dashboard, workouts, exercises, nutrition, physiology, profile)
+# 3. Create, view, update, and delete records in each section
+# 4. Test data export and import
+# 5. Verify data persists after page reload
+# 6. Test responsive layout on different screen sizes
 ```
 
 ---
@@ -215,17 +271,30 @@ better-training/
 
 ### Common Issues
 
-#### [Issue Name]
-- **Symptoms:** [Description]
-- **Cause:** [Explanation]
-- **Solution:** [Steps to resolve]
+#### Data Not Persisting
+- **Symptoms:** Data disappears after page reload
+- **Cause:** LocalStorage might be disabled or in private/incognito mode
+- **Solution:** Use regular browser mode, check browser storage settings
+
+#### View Not Updating After Data Change
+- **Symptoms:** UI doesn't reflect recent changes
+- **Cause:** View wasn't re-rendered after data modification
+- **Solution:** Ensure `App.route()` or specific render function is called after data changes
+
+#### Forms Not Working
+- **Symptoms:** Form submission doesn't do anything
+- **Cause:** JavaScript errors or event handler not attached
+- **Solution:** Check browser console for errors, verify `onsubmit` handlers are correct
 
 ### Debug Tools
-- [Tool]: [Usage]
+- **Browser DevTools**: Primary debugging tool (F12)
+- **Console**: View logs, errors, and inspect objects
+- **Application Tab**: Inspect LocalStorage contents
+- **Network Tab**: Not needed (no network requests)
+- **Elements Tab**: Inspect generated DOM and styles
 
 ### Logging
-- Log levels: [debug, info, warn, error]
-- Log location: [path or service]
+No formal logging system. Use `console.log()`, `console.warn()`, `console.error()` for debugging during development. Remove debug logs before committing.
 
 ---
 
@@ -320,9 +389,17 @@ If `git push` fails due to network errors:
 
 ## Changelog
 
-### [Date] - Initial Setup
-- Created CLAUDE.md template
-- Initialized repository structure
+### 2025-11-23 - Initial Project Setup
+- Created complete SPA structure with vanilla JavaScript
+- Implemented hash-based routing system
+- Built LocalStorage database layer with CRUD operations
+- Created data models for Exercise, Workout, Nutrition, Physiology, Profile
+- Designed brutalist-inspired dark theme CSS
+- Implemented all core views (dashboard, workouts, exercises, nutrition, physiology, profile)
+- Added data export/import functionality
+- Loaded sample exercise data
+- Created comprehensive CLAUDE.md guide
+- Added README.md documentation
 
 ---
 
