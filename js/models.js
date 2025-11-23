@@ -10,7 +10,8 @@ const Models = {
                 muscleGroups: data.muscleGroups || [], // chest, back, legs, shoulders, arms, core
                 equipment: data.equipment || 'bodyweight', // bodyweight, barbell, dumbbell, machine, etc.
                 description: data.description || '',
-                videoUrl: data.videoUrl || ''
+                videoUrl: data.videoUrl || '',
+                variants: data.variants || [] // [{ name: 'variant name', url: 'https://...' }]
             };
         },
 
