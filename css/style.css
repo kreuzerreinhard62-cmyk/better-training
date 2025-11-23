@@ -1,0 +1,270 @@
+/* Reset and base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg: #0a0a0a;
+    --fg: #e0e0e0;
+    --accent: #ff3366;
+    --border: #333;
+    --hover: #1a1a1a;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* Navigation */
+.nav {
+    border-bottom: 3px solid var(--border);
+    padding: 1.5rem 2rem;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.nav-title {
+    font-size: 1.5rem;
+    font-weight: 900;
+    text-transform: lowercase;
+    margin-bottom: 1rem;
+    letter-spacing: -1px;
+}
+
+.nav-links {
+    list-style: none;
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.nav-links a {
+    color: var(--fg);
+    text-decoration: none;
+    text-transform: lowercase;
+    font-weight: 600;
+    border-bottom: 2px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+    border-bottom-color: var(--accent);
+}
+
+/* Container */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Typography */
+h2 {
+    font-size: 2.5rem;
+    font-weight: 900;
+    text-transform: lowercase;
+    margin-bottom: 2rem;
+    letter-spacing: -2px;
+}
+
+h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-transform: lowercase;
+    margin-bottom: 1rem;
+}
+
+/* Forms */
+input, textarea, select, button {
+    font-family: inherit;
+    font-size: 1rem;
+    padding: 0.75rem;
+    border: 2px solid var(--border);
+    background: var(--bg);
+    color: var(--fg);
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+button {
+    background: var(--fg);
+    color: var(--bg);
+    font-weight: 700;
+    text-transform: lowercase;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+}
+
+button:hover {
+    background: var(--accent);
+    transform: translateY(-2px);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--fg);
+    border: 2px solid var(--border);
+}
+
+.btn-secondary:hover {
+    border-color: var(--accent);
+    background: transparent;
+}
+
+/* Grid layouts */
+.grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.card {
+    border: 2px solid var(--border);
+    padding: 1.5rem;
+    background: var(--bg);
+    transition: border-color 0.2s;
+}
+
+.card:hover {
+    border-color: var(--accent);
+}
+
+.card-title {
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    text-transform: lowercase;
+}
+
+.card-meta {
+    color: #777;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+/* Lists */
+.list {
+    list-style: none;
+}
+
+.list-item {
+    border-left: 3px solid var(--border);
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    background: var(--hover);
+    transition: border-color 0.2s;
+}
+
+.list-item:hover {
+    border-left-color: var(--accent);
+}
+
+/* Stats */
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat {
+    border: 2px solid var(--border);
+    padding: 1rem;
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--accent);
+}
+
+.stat-label {
+    text-transform: lowercase;
+    color: #777;
+    font-size: 0.9rem;
+}
+
+/* Form grid */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+/* Utilities */
+.mb-2 {
+    margin-bottom: 2rem;
+}
+
+.flex {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Table */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2rem;
+}
+
+th, td {
+    text-align: left;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+th {
+    font-weight: 700;
+    text-transform: lowercase;
+}
+
+tr:hover {
+    background: var(--hover);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .nav-links {
+        gap: 1rem;
+    }
+
+    h2 {
+        font-size: 2rem;
+    }
+
+    .container {
+        padding: 1rem;
+    }
+}
