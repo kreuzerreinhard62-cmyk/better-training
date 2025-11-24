@@ -11,6 +11,7 @@ const Models = {
                 equipment: data.equipment || 'bodyweight', // bodyweight, barbell, dumbbell, machine, etc.
                 difficulty: data.difficulty || 'intermediate', // beginner, intermediate, advanced
                 description: data.description || '',
+                imageUrl: data.imageUrl || '',
                 videoUrl: data.videoUrl || '',
                 variants: data.variants || [] // [{ name: 'variant name', url: 'https://...' }]
             };

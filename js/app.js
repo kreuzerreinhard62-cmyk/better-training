@@ -395,6 +395,7 @@ const App = {
                     </div>
                     <input type="text" name="muscleGroups" placeholder="muscle groups (comma separated)">
                     <textarea name="description" placeholder="description..." rows="3"></textarea>
+                    <input type="text" name="imageUrl" placeholder="image url (optional)">
                     <input type="text" name="videoUrl" placeholder="video url (optional)">
                     <textarea name="variants" placeholder="exercise variants (one per line: name | url)" rows="3"></textarea>
                     <div class="flex">
@@ -501,6 +502,7 @@ const App = {
             equipment: formData.get('equipment'),
             muscleGroups: muscleGroups,
             description: formData.get('description'),
+            imageUrl: formData.get('imageUrl'),
             videoUrl: formData.get('videoUrl'),
             variants: variants
         });
@@ -634,6 +636,7 @@ const App = {
                     </div>
                     <input type="text" name="muscleGroups" placeholder="muscle groups (comma separated)" value="${exercise.muscleGroups.join(', ')}">
                     <textarea name="description" placeholder="description..." rows="4">${exercise.description}</textarea>
+                    <input type="text" name="imageUrl" placeholder="image url (optional)" value="${exercise.imageUrl}">
                     <input type="text" name="videoUrl" placeholder="video url (optional)" value="${exercise.videoUrl}">
                     <textarea name="variants" placeholder="variants (one per line: name | url)" rows="4">${exercise.variants.map(v => `${v.name} | ${v.url}`).join('\n')}</textarea>
                     <div class="flex">
@@ -676,6 +679,7 @@ const App = {
             equipment: formData.get('equipment'),
             muscleGroups: muscleGroups,
             description: formData.get('description'),
+            imageUrl: formData.get('imageUrl'),
             videoUrl: formData.get('videoUrl'),
             variants: variants
         };
@@ -1012,155 +1016,8 @@ const App = {
     loadSampleData() {
         // Only load if no data exists
         if (Models.Exercise.getAll().length === 0) {
-            // Sample exercises with comprehensive data
-            const sampleExercises = [
-                {
-                    name: 'push-up',
-                    category: 'strength',
-                    difficulty: 'beginner',
-                    muscleGroups: ['chest', 'triceps', 'shoulders', 'core'],
-                    equipment: 'bodyweight',
-                    description: 'classic bodyweight exercise for upper body strength'
-                },
-                {
-                    name: 'squat',
-                    category: 'strength',
-                    difficulty: 'beginner',
-                    muscleGroups: ['legs', 'glutes', 'core'],
-                    equipment: 'bodyweight',
-                    description: 'fundamental lower body movement pattern'
-                },
-                {
-                    name: 'plank',
-                    category: 'strength',
-                    difficulty: 'beginner',
-                    muscleGroups: ['core', 'shoulders'],
-                    equipment: 'bodyweight',
-                    description: 'isometric core strengthening exercise'
-                },
-                {
-                    name: 'bench press',
-                    category: 'strength',
-                    difficulty: 'intermediate',
-                    muscleGroups: ['chest', 'triceps', 'shoulders'],
-                    equipment: 'barbell',
-                    description: 'compound pressing movement for upper body strength'
-                },
-                {
-                    name: 'deadlift',
-                    category: 'strength',
-                    difficulty: 'intermediate',
-                    muscleGroups: ['back', 'legs', 'glutes', 'core'],
-                    equipment: 'barbell',
-                    description: 'compound hip hinge movement, king of exercises'
-                },
-                {
-                    name: 'pull-up',
-                    category: 'strength',
-                    difficulty: 'intermediate',
-                    muscleGroups: ['back', 'biceps'],
-                    equipment: 'bodyweight',
-                    description: 'vertical pulling exercise for back development'
-                },
-                {
-                    name: 'overhead press',
-                    category: 'strength',
-                    difficulty: 'intermediate',
-                    muscleGroups: ['shoulders', 'triceps', 'core'],
-                    equipment: 'barbell',
-                    description: 'vertical pressing movement for shoulder strength'
-                },
-                {
-                    name: 'dumbbell row',
-                    category: 'strength',
-                    difficulty: 'intermediate',
-                    muscleGroups: ['back', 'biceps'],
-                    equipment: 'dumbbell',
-                    description: 'unilateral rowing movement for back development'
-                },
-                {
-                    name: 'pistol squat',
-                    category: 'strength',
-                    difficulty: 'advanced',
-                    muscleGroups: ['legs', 'glutes', 'core'],
-                    equipment: 'bodyweight',
-                    description: 'single-leg squat requiring strength and balance'
-                },
-                {
-                    name: 'muscle-up',
-                    category: 'strength',
-                    difficulty: 'advanced',
-                    muscleGroups: ['back', 'chest', 'triceps', 'core'],
-                    equipment: 'bodyweight',
-                    description: 'advanced calisthenics movement combining pull and push'
-                },
-                {
-                    name: 'running',
-                    category: 'cardio',
-                    difficulty: 'beginner',
-                    muscleGroups: ['legs', 'core'],
-                    equipment: 'bodyweight',
-                    description: 'basic cardiovascular endurance exercise'
-                },
-                {
-                    name: 'cycling',
-                    category: 'cardio',
-                    difficulty: 'beginner',
-                    muscleGroups: ['legs'],
-                    equipment: 'machine',
-                    description: 'low-impact cardiovascular exercise'
-                },
-                {
-                    name: 'burpees',
-                    category: 'cardio',
-                    difficulty: 'intermediate',
-                    muscleGroups: ['legs', 'chest', 'core'],
-                    equipment: 'bodyweight',
-                    description: 'full-body explosive cardio movement'
-                },
-                {
-                    name: 'jumping rope',
-                    category: 'cardio',
-                    difficulty: 'intermediate',
-                    muscleGroups: ['legs', 'shoulders', 'calves'],
-                    equipment: 'bands',
-                    description: 'high-intensity cardio with coordination training'
-                },
-                {
-                    name: 'hamstring stretch',
-                    category: 'flexibility',
-                    difficulty: 'beginner',
-                    muscleGroups: ['legs'],
-                    equipment: 'bodyweight',
-                    description: 'static stretch for posterior chain flexibility'
-                },
-                {
-                    name: 'shoulder dislocations',
-                    category: 'mobility',
-                    difficulty: 'beginner',
-                    muscleGroups: ['shoulders'],
-                    equipment: 'bands',
-                    description: 'shoulder mobility drill using resistance band'
-                },
-                {
-                    name: 'kettlebell swing',
-                    category: 'strength',
-                    difficulty: 'intermediate',
-                    muscleGroups: ['glutes', 'back', 'core'],
-                    equipment: 'kettlebell',
-                    description: 'explosive hip hinge movement for power development'
-                },
-                {
-                    name: 'front squat',
-                    category: 'strength',
-                    difficulty: 'advanced',
-                    muscleGroups: ['legs', 'core'],
-                    equipment: 'barbell',
-                    description: 'quad-dominant squat variation with front rack position'
-                }
-            ];
-
-            sampleExercises.forEach(ex => {
+            // Load comprehensive exercise database from exercises-data.js
+            EXERCISE_DATABASE.forEach(ex => {
                 Models.Exercise.save(Models.Exercise.create(ex));
             });
         }
