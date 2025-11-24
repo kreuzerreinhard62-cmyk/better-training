@@ -9,6 +9,7 @@ const Models = {
                 category: data.category || 'strength', // strength, cardio, flexibility, mobility
                 muscleGroups: data.muscleGroups || [], // chest, back, legs, shoulders, arms, core
                 equipment: data.equipment || 'bodyweight', // bodyweight, barbell, dumbbell, machine, etc.
+                difficulty: data.difficulty || 'intermediate', // beginner, intermediate, advanced
                 description: data.description || '',
                 videoUrl: data.videoUrl || '',
                 variants: data.variants || [] // [{ name: 'variant name', url: 'https://...' }]
