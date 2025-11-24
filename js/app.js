@@ -14,7 +14,7 @@ const App = {
 
         // Handle initial load
         if (!window.location.hash) {
-            window.location.hash = '#dashboard';
+            window.location.hash = '#exercises';
         }
         this.route();
 
@@ -29,9 +29,6 @@ const App = {
         this.updateActiveNav();
 
         switch(view) {
-            case 'dashboard':
-                this.renderDashboard();
-                break;
             case 'workouts':
                 if (params[0] === 'detail' && params[1]) {
                     this.renderWorkoutDetail(params[1]);
@@ -46,17 +43,11 @@ const App = {
                     this.renderExercises();
                 }
                 break;
-            case 'nutrition':
-                this.renderNutrition();
-                break;
-            case 'physiology':
-                this.renderPhysiology();
-                break;
             case 'profile':
                 this.renderProfile();
                 break;
             default:
-                this.renderDashboard();
+                this.renderExercises();
         }
     },
 
@@ -380,7 +371,7 @@ const App = {
 
         this.render(`
             <div class="flex-between mb-2">
-                <h2>exercises</h2>
+                <h2>exercise database</h2>
                 <button onclick="App.showExerciseForm()">+ new exercise</button>
             </div>
 
@@ -395,6 +386,11 @@ const App = {
                             <option value="flexibility">flexibility</option>
                             <option value="mobility">mobility</option>
                         </select>
+                        <select name="difficulty">
+                            <option value="beginner">beginner</option>
+                            <option value="intermediate" selected>intermediate</option>
+                            <option value="advanced">advanced</option>
+                        </select>
                         <input type="text" name="equipment" placeholder="equipment (e.g., barbell)">
                     </div>
                     <input type="text" name="muscleGroups" placeholder="muscle groups (comma separated)">
@@ -408,12 +404,64 @@ const App = {
                 </form>
             </div>
 
-            <div class="grid">
+            <div class="filters-section mb-2">
+                <h3>search & filter</h3>
+                <div class="search-bar mb-2">
+                    <input type="text" id="search-input" placeholder="search exercises..." oninput="App.applyFilters()">
+                </div>
+                <div class="form-grid">
+                    <select id="filter-difficulty" onchange="App.applyFilters()">
+                        <option value="">all difficulties</option>
+                        <option value="beginner">beginner</option>
+                        <option value="intermediate">intermediate</option>
+                        <option value="advanced">advanced</option>
+                    </select>
+                    <select id="filter-category" onchange="App.applyFilters()">
+                        <option value="">all categories</option>
+                        <option value="strength">strength</option>
+                        <option value="cardio">cardio</option>
+                        <option value="flexibility">flexibility</option>
+                        <option value="mobility">mobility</option>
+                    </select>
+                    <select id="filter-equipment" onchange="App.applyFilters()">
+                        <option value="">all equipment</option>
+                        <option value="bodyweight">bodyweight</option>
+                        <option value="barbell">barbell</option>
+                        <option value="dumbbell">dumbbell</option>
+                        <option value="kettlebell">kettlebell</option>
+                        <option value="machine">machine</option>
+                        <option value="cables">cables</option>
+                        <option value="bands">bands</option>
+                    </select>
+                    <select id="filter-muscle" onchange="App.applyFilters()">
+                        <option value="">all muscles</option>
+                        <option value="chest">chest</option>
+                        <option value="back">back</option>
+                        <option value="legs">legs</option>
+                        <option value="shoulders">shoulders</option>
+                        <option value="arms">arms</option>
+                        <option value="biceps">biceps</option>
+                        <option value="triceps">triceps</option>
+                        <option value="core">core</option>
+                        <option value="glutes">glutes</option>
+                        <option value="calves">calves</option>
+                        <option value="forearms">forearms</option>
+                    </select>
+                </div>
+                <div class="flex">
+                    <button class="btn-secondary" onclick="App.clearFilters()">clear filters</button>
+                    <div class="stat-label" style="margin-left: auto;">
+                        <span id="results-count">${exercises.length}</span> exercises found
+                    </div>
+                </div>
+            </div>
+
+            <div id="exercises-grid" class="grid">
                 ${exercises.map(ex => `
-                    <div class="card" style="cursor: pointer;" onclick="window.location.hash = '#exercises/detail/${ex.id}'">
+                    <div class="card exercise-card" data-name="${ex.name.toLowerCase()}" data-difficulty="${ex.difficulty}" data-category="${ex.category}" data-equipment="${ex.equipment}" data-muscles="${ex.muscleGroups.join(',').toLowerCase()}" style="cursor: pointer;" onclick="window.location.hash = '#exercises/detail/${ex.id}'">
                         <div class="card-title">${ex.name}</div>
-                        <div class="card-meta">${ex.category} • ${ex.equipment}</div>
-                        ${ex.muscleGroups.length > 0 ? `<p>${ex.muscleGroups.join(', ')}</p>` : ''}
+                        <div class="card-meta">${ex.category} • ${ex.equipment} • ${ex.difficulty}</div>
+                        ${ex.muscleGroups.length > 0 ? `<p><strong>targets:</strong> ${ex.muscleGroups.join(', ')}</p>` : ''}
                         ${ex.description ? `<p style="color: #777; margin-top: 0.5rem; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${ex.description}</p>` : ''}
                         <button onclick="event.stopPropagation(); App.deleteExercise('${ex.id}')" class="btn-secondary" style="margin-top: 1rem;">delete</button>
                     </div>
@@ -449,6 +497,7 @@ const App = {
         const exercise = Models.Exercise.create({
             name: formData.get('name'),
             category: formData.get('category'),
+            difficulty: formData.get('difficulty'),
             equipment: formData.get('equipment'),
             muscleGroups: muscleGroups,
             description: formData.get('description'),
@@ -472,6 +521,49 @@ const App = {
         }
     },
 
+    applyFilters() {
+        const searchTerm = document.getElementById('search-input').value.toLowerCase();
+        const difficultyFilter = document.getElementById('filter-difficulty').value;
+        const categoryFilter = document.getElementById('filter-category').value;
+        const equipmentFilter = document.getElementById('filter-equipment').value;
+        const muscleFilter = document.getElementById('filter-muscle').value;
+
+        const cards = document.querySelectorAll('.exercise-card');
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+            const name = card.dataset.name;
+            const difficulty = card.dataset.difficulty;
+            const category = card.dataset.category;
+            const equipment = card.dataset.equipment;
+            const muscles = card.dataset.muscles;
+
+            const matchesSearch = !searchTerm || name.includes(searchTerm);
+            const matchesDifficulty = !difficultyFilter || difficulty === difficultyFilter;
+            const matchesCategory = !categoryFilter || category === categoryFilter;
+            const matchesEquipment = !equipmentFilter || equipment === equipmentFilter;
+            const matchesMuscle = !muscleFilter || muscles.includes(muscleFilter);
+
+            if (matchesSearch && matchesDifficulty && matchesCategory && matchesEquipment && matchesMuscle) {
+                card.style.display = '';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        document.getElementById('results-count').textContent = visibleCount;
+    },
+
+    clearFilters() {
+        document.getElementById('search-input').value = '';
+        document.getElementById('filter-difficulty').value = '';
+        document.getElementById('filter-category').value = '';
+        document.getElementById('filter-equipment').value = '';
+        document.getElementById('filter-muscle').value = '';
+        this.applyFilters();
+    },
+
     // Exercise detail view
     renderExerciseDetail(id) {
         const exercise = Models.Exercise.getById(id);
@@ -487,7 +579,7 @@ const App = {
             </div>
 
             <h2>${exercise.name}</h2>
-            <div class="card-meta mb-2">${exercise.category} • ${exercise.equipment}</div>
+            <div class="card-meta mb-2">${exercise.category} • ${exercise.equipment} • ${exercise.difficulty}</div>
 
             <div class="mb-2">
                 <h3>muscle groups</h3>
@@ -533,6 +625,11 @@ const App = {
                             <option value="flexibility" ${exercise.category === 'flexibility' ? 'selected' : ''}>flexibility</option>
                             <option value="mobility" ${exercise.category === 'mobility' ? 'selected' : ''}>mobility</option>
                         </select>
+                        <select name="difficulty">
+                            <option value="beginner" ${exercise.difficulty === 'beginner' ? 'selected' : ''}>beginner</option>
+                            <option value="intermediate" ${exercise.difficulty === 'intermediate' ? 'selected' : ''}>intermediate</option>
+                            <option value="advanced" ${exercise.difficulty === 'advanced' ? 'selected' : ''}>advanced</option>
+                        </select>
                         <input type="text" name="equipment" placeholder="equipment (e.g., barbell)" value="${exercise.equipment}">
                     </div>
                     <input type="text" name="muscleGroups" placeholder="muscle groups (comma separated)" value="${exercise.muscleGroups.join(', ')}">
@@ -575,6 +672,7 @@ const App = {
         const updates = {
             name: formData.get('name'),
             category: formData.get('category'),
+            difficulty: formData.get('difficulty'),
             equipment: formData.get('equipment'),
             muscleGroups: muscleGroups,
             description: formData.get('description'),
@@ -914,25 +1012,157 @@ const App = {
     loadSampleData() {
         // Only load if no data exists
         if (Models.Exercise.getAll().length === 0) {
-            // Sample exercises
-            Models.Exercise.save(Models.Exercise.create({
-                name: 'bench press',
-                category: 'strength',
-                muscleGroups: ['chest', 'triceps', 'shoulders'],
-                equipment: 'barbell'
-            }));
-            Models.Exercise.save(Models.Exercise.create({
-                name: 'squat',
-                category: 'strength',
-                muscleGroups: ['legs', 'glutes', 'core'],
-                equipment: 'barbell'
-            }));
-            Models.Exercise.save(Models.Exercise.create({
-                name: 'pull-up',
-                category: 'strength',
-                muscleGroups: ['back', 'biceps'],
-                equipment: 'bodyweight'
-            }));
+            // Sample exercises with comprehensive data
+            const sampleExercises = [
+                {
+                    name: 'push-up',
+                    category: 'strength',
+                    difficulty: 'beginner',
+                    muscleGroups: ['chest', 'triceps', 'shoulders', 'core'],
+                    equipment: 'bodyweight',
+                    description: 'classic bodyweight exercise for upper body strength'
+                },
+                {
+                    name: 'squat',
+                    category: 'strength',
+                    difficulty: 'beginner',
+                    muscleGroups: ['legs', 'glutes', 'core'],
+                    equipment: 'bodyweight',
+                    description: 'fundamental lower body movement pattern'
+                },
+                {
+                    name: 'plank',
+                    category: 'strength',
+                    difficulty: 'beginner',
+                    muscleGroups: ['core', 'shoulders'],
+                    equipment: 'bodyweight',
+                    description: 'isometric core strengthening exercise'
+                },
+                {
+                    name: 'bench press',
+                    category: 'strength',
+                    difficulty: 'intermediate',
+                    muscleGroups: ['chest', 'triceps', 'shoulders'],
+                    equipment: 'barbell',
+                    description: 'compound pressing movement for upper body strength'
+                },
+                {
+                    name: 'deadlift',
+                    category: 'strength',
+                    difficulty: 'intermediate',
+                    muscleGroups: ['back', 'legs', 'glutes', 'core'],
+                    equipment: 'barbell',
+                    description: 'compound hip hinge movement, king of exercises'
+                },
+                {
+                    name: 'pull-up',
+                    category: 'strength',
+                    difficulty: 'intermediate',
+                    muscleGroups: ['back', 'biceps'],
+                    equipment: 'bodyweight',
+                    description: 'vertical pulling exercise for back development'
+                },
+                {
+                    name: 'overhead press',
+                    category: 'strength',
+                    difficulty: 'intermediate',
+                    muscleGroups: ['shoulders', 'triceps', 'core'],
+                    equipment: 'barbell',
+                    description: 'vertical pressing movement for shoulder strength'
+                },
+                {
+                    name: 'dumbbell row',
+                    category: 'strength',
+                    difficulty: 'intermediate',
+                    muscleGroups: ['back', 'biceps'],
+                    equipment: 'dumbbell',
+                    description: 'unilateral rowing movement for back development'
+                },
+                {
+                    name: 'pistol squat',
+                    category: 'strength',
+                    difficulty: 'advanced',
+                    muscleGroups: ['legs', 'glutes', 'core'],
+                    equipment: 'bodyweight',
+                    description: 'single-leg squat requiring strength and balance'
+                },
+                {
+                    name: 'muscle-up',
+                    category: 'strength',
+                    difficulty: 'advanced',
+                    muscleGroups: ['back', 'chest', 'triceps', 'core'],
+                    equipment: 'bodyweight',
+                    description: 'advanced calisthenics movement combining pull and push'
+                },
+                {
+                    name: 'running',
+                    category: 'cardio',
+                    difficulty: 'beginner',
+                    muscleGroups: ['legs', 'core'],
+                    equipment: 'bodyweight',
+                    description: 'basic cardiovascular endurance exercise'
+                },
+                {
+                    name: 'cycling',
+                    category: 'cardio',
+                    difficulty: 'beginner',
+                    muscleGroups: ['legs'],
+                    equipment: 'machine',
+                    description: 'low-impact cardiovascular exercise'
+                },
+                {
+                    name: 'burpees',
+                    category: 'cardio',
+                    difficulty: 'intermediate',
+                    muscleGroups: ['legs', 'chest', 'core'],
+                    equipment: 'bodyweight',
+                    description: 'full-body explosive cardio movement'
+                },
+                {
+                    name: 'jumping rope',
+                    category: 'cardio',
+                    difficulty: 'intermediate',
+                    muscleGroups: ['legs', 'shoulders', 'calves'],
+                    equipment: 'bands',
+                    description: 'high-intensity cardio with coordination training'
+                },
+                {
+                    name: 'hamstring stretch',
+                    category: 'flexibility',
+                    difficulty: 'beginner',
+                    muscleGroups: ['legs'],
+                    equipment: 'bodyweight',
+                    description: 'static stretch for posterior chain flexibility'
+                },
+                {
+                    name: 'shoulder dislocations',
+                    category: 'mobility',
+                    difficulty: 'beginner',
+                    muscleGroups: ['shoulders'],
+                    equipment: 'bands',
+                    description: 'shoulder mobility drill using resistance band'
+                },
+                {
+                    name: 'kettlebell swing',
+                    category: 'strength',
+                    difficulty: 'intermediate',
+                    muscleGroups: ['glutes', 'back', 'core'],
+                    equipment: 'kettlebell',
+                    description: 'explosive hip hinge movement for power development'
+                },
+                {
+                    name: 'front squat',
+                    category: 'strength',
+                    difficulty: 'advanced',
+                    muscleGroups: ['legs', 'core'],
+                    equipment: 'barbell',
+                    description: 'quad-dominant squat variation with front rack position'
+                }
+            ];
+
+            sampleExercises.forEach(ex => {
+                Models.Exercise.save(Models.Exercise.create(ex));
+            });
         }
     }
 };

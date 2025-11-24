@@ -254,6 +254,29 @@ tr:hover {
     background: var(--hover);
 }
 
+/* Filters section */
+.filters-section {
+    background: var(--hover);
+    border: 2px solid var(--border);
+    padding: 1.5rem;
+}
+
+.search-bar input {
+    margin-bottom: 1rem;
+    border: 2px solid var(--border);
+    background: var(--bg);
+    font-size: 1rem;
+}
+
+.search-bar input:focus {
+    border-color: var(--accent);
+}
+
+/* Background variable */
+:root {
+    --bg-dark: #050505;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .nav-links {
