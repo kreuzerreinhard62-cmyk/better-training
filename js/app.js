@@ -395,6 +395,7 @@ const App = {
                     </div>
                     <input type="text" name="muscleGroups" placeholder="muscle groups (comma separated)">
                     <textarea name="description" placeholder="description..." rows="3"></textarea>
+                    <input type="text" name="imageUrl" placeholder="image url (optional)">
                     <input type="text" name="videoUrl" placeholder="video url (optional)">
                     <textarea name="variants" placeholder="exercise variants (one per line: name | url)" rows="3"></textarea>
                     <div class="flex">
@@ -410,6 +411,12 @@ const App = {
                     <input type="text" id="search-input" placeholder="search exercises..." oninput="App.applyFilters()">
                 </div>
                 <div class="form-grid">
+                    <select id="sort-order" onchange="App.applySorting()">
+                        <option value="name">sort: a-z</option>
+                        <option value="difficulty">sort: difficulty</option>
+                        <option value="category">sort: category</option>
+                        <option value="equipment">sort: equipment</option>
+                    </select>
                     <select id="filter-difficulty" onchange="App.applyFilters()">
                         <option value="">all difficulties</option>
                         <option value="beginner">beginner</option>
@@ -459,6 +466,7 @@ const App = {
             <div id="exercises-grid" class="grid">
                 ${exercises.map(ex => `
                     <div class="card exercise-card" data-name="${ex.name.toLowerCase()}" data-difficulty="${ex.difficulty}" data-category="${ex.category}" data-equipment="${ex.equipment}" data-muscles="${ex.muscleGroups.join(',').toLowerCase()}" style="cursor: pointer;" onclick="window.location.hash = '#exercises/detail/${ex.id}'">
+                        ${ex.imageUrl ? `<img src="${ex.imageUrl}" alt="${ex.name}" class="exercise-image" style="width: 100%; height: 200px; object-fit: cover; margin-bottom: 1rem; border: 1px solid var(--border);">` : ''}
                         <div class="card-title">${ex.name}</div>
                         <div class="card-meta">${ex.category} • ${ex.equipment} • ${ex.difficulty}</div>
                         ${ex.muscleGroups.length > 0 ? `<p><strong>targets:</strong> ${ex.muscleGroups.join(', ')}</p>` : ''}
@@ -501,6 +509,7 @@ const App = {
             equipment: formData.get('equipment'),
             muscleGroups: muscleGroups,
             description: formData.get('description'),
+            imageUrl: formData.get('imageUrl'),
             videoUrl: formData.get('videoUrl'),
             variants: variants
         });
@@ -564,6 +573,44 @@ const App = {
         this.applyFilters();
     },
 
+    applySorting() {
+        const sortOrder = document.getElementById('sort-order').value;
+        const grid = document.getElementById('exercises-grid');
+        const cards = Array.from(document.querySelectorAll('.exercise-card'));
+
+        cards.sort((a, b) => {
+            let aVal, bVal;
+
+            switch(sortOrder) {
+                case 'name':
+                    aVal = a.dataset.name;
+                    bVal = b.dataset.name;
+                    return aVal.localeCompare(bVal);
+
+                case 'difficulty':
+                    const difficultyOrder = { 'beginner': 1, 'intermediate': 2, 'advanced': 3 };
+                    aVal = difficultyOrder[a.dataset.difficulty] || 0;
+                    bVal = difficultyOrder[b.dataset.difficulty] || 0;
+                    return aVal - bVal;
+
+                case 'category':
+                    aVal = a.dataset.category;
+                    bVal = b.dataset.category;
+                    return aVal.localeCompare(bVal);
+
+                case 'equipment':
+                    aVal = a.dataset.equipment;
+                    bVal = b.dataset.equipment;
+                    return aVal.localeCompare(bVal);
+
+                default:
+                    return 0;
+            }
+        });
+
+        cards.forEach(card => grid.appendChild(card));
+    },
+
     // Exercise detail view
     renderExerciseDetail(id) {
         const exercise = Models.Exercise.getById(id);
@@ -580,6 +627,12 @@ const App = {
 
             <h2>${exercise.name}</h2>
             <div class="card-meta mb-2">${exercise.category} • ${exercise.equipment} • ${exercise.difficulty}</div>
+
+            ${exercise.imageUrl ? `
+            <div class="mb-2">
+                <img src="${exercise.imageUrl}" alt="${exercise.name}" style="width: 100%; max-width: 600px; height: auto; border: 2px solid var(--border);">
+            </div>
+            ` : ''}
 
             <div class="mb-2">
                 <h3>muscle groups</h3>
@@ -609,6 +662,33 @@ const App = {
                     : '<p style="color: #777;">no variants available</p>'}
             </div>
 
+            ${(() => {
+                const relatedExercises = Models.Exercise.getAll()
+                    .filter(ex => ex.id !== exercise.id)
+                    .filter(ex => {
+                        const sharedMuscles = ex.muscleGroups.some(mg => exercise.muscleGroups.includes(mg));
+                        const sameCategory = ex.category === exercise.category;
+                        return sharedMuscles || sameCategory;
+                    })
+                    .slice(0, 6);
+
+                if (relatedExercises.length === 0) return '';
+
+                return `
+                <div class="mb-2">
+                    <h3>related exercises</h3>
+                    <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
+                        ${relatedExercises.map(ex => `
+                            <div class="card" style="cursor: pointer; padding: 1rem;" onclick="window.location.hash = '#exercises/detail/${ex.id}'">
+                                <div class="card-title" style="font-size: 1rem;">${ex.name}</div>
+                                <div class="card-meta" style="font-size: 0.85rem;">${ex.difficulty}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                `;
+            })()}
+
             <div class="flex mt-2" style="margin-top: 2rem;">
                 <button onclick="App.showEditExerciseForm('${id}')" class="btn-secondary">edit exercise</button>
                 <button onclick="App.deleteExercise('${id}')" class="btn-secondary" style="border-color: var(--accent); color: var(--accent);">delete exercise</button>
@@ -634,6 +714,7 @@ const App = {
                     </div>
                     <input type="text" name="muscleGroups" placeholder="muscle groups (comma separated)" value="${exercise.muscleGroups.join(', ')}">
                     <textarea name="description" placeholder="description..." rows="4">${exercise.description}</textarea>
+                    <input type="text" name="imageUrl" placeholder="image url (optional)" value="${exercise.imageUrl}">
                     <input type="text" name="videoUrl" placeholder="video url (optional)" value="${exercise.videoUrl}">
                     <textarea name="variants" placeholder="variants (one per line: name | url)" rows="4">${exercise.variants.map(v => `${v.name} | ${v.url}`).join('\n')}</textarea>
                     <div class="flex">
@@ -676,6 +757,7 @@ const App = {
             equipment: formData.get('equipment'),
             muscleGroups: muscleGroups,
             description: formData.get('description'),
+            imageUrl: formData.get('imageUrl'),
             videoUrl: formData.get('videoUrl'),
             variants: variants
         };
@@ -1012,155 +1094,8 @@ const App = {
     loadSampleData() {
         // Only load if no data exists
         if (Models.Exercise.getAll().length === 0) {
-            // Sample exercises with comprehensive data
-            const sampleExercises = [
-                {
-                    name: 'push-up',
-                    category: 'strength',
-                    difficulty: 'beginner',
-                    muscleGroups: ['chest', 'triceps', 'shoulders', 'core'],
-                    equipment: 'bodyweight',
-                    description: 'classic bodyweight exercise for upper body strength'
-                },
-                {
-                    name: 'squat',
-                    category: 'strength',
-                    difficulty: 'beginner',
-                    muscleGroups: ['legs', 'glutes', 'core'],
-                    equipment: 'bodyweight',
-                    description: 'fundamental lower body movement pattern'
-                },
-                {
-                    name: 'plank',
-                    category: 'strength',
-                    difficulty: 'beginner',
-                    muscleGroups: ['core', 'shoulders'],
-                    equipment: 'bodyweight',
-                    description: 'isometric core strengthening exercise'
-                },
-                {
-                    name: 'bench press',
-                    category: 'strength',
-                    difficulty: 'intermediate',
-                    muscleGroups: ['chest', 'triceps', 'shoulders'],
-                    equipment: 'barbell',
-                    description: 'compound pressing movement for upper body strength'
-                },
-                {
-                    name: 'deadlift',
-                    category: 'strength',
-                    difficulty: 'intermediate',
-                    muscleGroups: ['back', 'legs', 'glutes', 'core'],
-                    equipment: 'barbell',
-                    description: 'compound hip hinge movement, king of exercises'
-                },
-                {
-                    name: 'pull-up',
-                    category: 'strength',
-                    difficulty: 'intermediate',
-                    muscleGroups: ['back', 'biceps'],
-                    equipment: 'bodyweight',
-                    description: 'vertical pulling exercise for back development'
-                },
-                {
-                    name: 'overhead press',
-                    category: 'strength',
-                    difficulty: 'intermediate',
-                    muscleGroups: ['shoulders', 'triceps', 'core'],
-                    equipment: 'barbell',
-                    description: 'vertical pressing movement for shoulder strength'
-                },
-                {
-                    name: 'dumbbell row',
-                    category: 'strength',
-                    difficulty: 'intermediate',
-                    muscleGroups: ['back', 'biceps'],
-                    equipment: 'dumbbell',
-                    description: 'unilateral rowing movement for back development'
-                },
-                {
-                    name: 'pistol squat',
-                    category: 'strength',
-                    difficulty: 'advanced',
-                    muscleGroups: ['legs', 'glutes', 'core'],
-                    equipment: 'bodyweight',
-                    description: 'single-leg squat requiring strength and balance'
-                },
-                {
-                    name: 'muscle-up',
-                    category: 'strength',
-                    difficulty: 'advanced',
-                    muscleGroups: ['back', 'chest', 'triceps', 'core'],
-                    equipment: 'bodyweight',
-                    description: 'advanced calisthenics movement combining pull and push'
-                },
-                {
-                    name: 'running',
-                    category: 'cardio',
-                    difficulty: 'beginner',
-                    muscleGroups: ['legs', 'core'],
-                    equipment: 'bodyweight',
-                    description: 'basic cardiovascular endurance exercise'
-                },
-                {
-                    name: 'cycling',
-                    category: 'cardio',
-                    difficulty: 'beginner',
-                    muscleGroups: ['legs'],
-                    equipment: 'machine',
-                    description: 'low-impact cardiovascular exercise'
-                },
-                {
-                    name: 'burpees',
-                    category: 'cardio',
-                    difficulty: 'intermediate',
-                    muscleGroups: ['legs', 'chest', 'core'],
-                    equipment: 'bodyweight',
-                    description: 'full-body explosive cardio movement'
-                },
-                {
-                    name: 'jumping rope',
-                    category: 'cardio',
-                    difficulty: 'intermediate',
-                    muscleGroups: ['legs', 'shoulders', 'calves'],
-                    equipment: 'bands',
-                    description: 'high-intensity cardio with coordination training'
-                },
-                {
-                    name: 'hamstring stretch',
-                    category: 'flexibility',
-                    difficulty: 'beginner',
-                    muscleGroups: ['legs'],
-                    equipment: 'bodyweight',
-                    description: 'static stretch for posterior chain flexibility'
-                },
-                {
-                    name: 'shoulder dislocations',
-                    category: 'mobility',
-                    difficulty: 'beginner',
-                    muscleGroups: ['shoulders'],
-                    equipment: 'bands',
-                    description: 'shoulder mobility drill using resistance band'
-                },
-                {
-                    name: 'kettlebell swing',
-                    category: 'strength',
-                    difficulty: 'intermediate',
-                    muscleGroups: ['glutes', 'back', 'core'],
-                    equipment: 'kettlebell',
-                    description: 'explosive hip hinge movement for power development'
-                },
-                {
-                    name: 'front squat',
-                    category: 'strength',
-                    difficulty: 'advanced',
-                    muscleGroups: ['legs', 'core'],
-                    equipment: 'barbell',
-                    description: 'quad-dominant squat variation with front rack position'
-                }
-            ];
-
-            sampleExercises.forEach(ex => {
+            // Load comprehensive exercise database from exercises-data.js
+            EXERCISE_DATABASE.forEach(ex => {
                 Models.Exercise.save(Models.Exercise.create(ex));
             });
         }
