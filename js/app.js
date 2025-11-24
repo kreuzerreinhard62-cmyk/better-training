@@ -411,6 +411,12 @@ const App = {
                     <input type="text" id="search-input" placeholder="search exercises..." oninput="App.applyFilters()">
                 </div>
                 <div class="form-grid">
+                    <select id="sort-order" onchange="App.applySorting()">
+                        <option value="name">sort: a-z</option>
+                        <option value="difficulty">sort: difficulty</option>
+                        <option value="category">sort: category</option>
+                        <option value="equipment">sort: equipment</option>
+                    </select>
                     <select id="filter-difficulty" onchange="App.applyFilters()">
                         <option value="">all difficulties</option>
                         <option value="beginner">beginner</option>
@@ -460,6 +466,7 @@ const App = {
             <div id="exercises-grid" class="grid">
                 ${exercises.map(ex => `
                     <div class="card exercise-card" data-name="${ex.name.toLowerCase()}" data-difficulty="${ex.difficulty}" data-category="${ex.category}" data-equipment="${ex.equipment}" data-muscles="${ex.muscleGroups.join(',').toLowerCase()}" style="cursor: pointer;" onclick="window.location.hash = '#exercises/detail/${ex.id}'">
+                        ${ex.imageUrl ? `<img src="${ex.imageUrl}" alt="${ex.name}" class="exercise-image" style="width: 100%; height: 200px; object-fit: cover; margin-bottom: 1rem; border: 1px solid var(--border);">` : ''}
                         <div class="card-title">${ex.name}</div>
                         <div class="card-meta">${ex.category} • ${ex.equipment} • ${ex.difficulty}</div>
                         ${ex.muscleGroups.length > 0 ? `<p><strong>targets:</strong> ${ex.muscleGroups.join(', ')}</p>` : ''}
@@ -566,6 +573,44 @@ const App = {
         this.applyFilters();
     },
 
+    applySorting() {
+        const sortOrder = document.getElementById('sort-order').value;
+        const grid = document.getElementById('exercises-grid');
+        const cards = Array.from(document.querySelectorAll('.exercise-card'));
+
+        cards.sort((a, b) => {
+            let aVal, bVal;
+
+            switch(sortOrder) {
+                case 'name':
+                    aVal = a.dataset.name;
+                    bVal = b.dataset.name;
+                    return aVal.localeCompare(bVal);
+
+                case 'difficulty':
+                    const difficultyOrder = { 'beginner': 1, 'intermediate': 2, 'advanced': 3 };
+                    aVal = difficultyOrder[a.dataset.difficulty] || 0;
+                    bVal = difficultyOrder[b.dataset.difficulty] || 0;
+                    return aVal - bVal;
+
+                case 'category':
+                    aVal = a.dataset.category;
+                    bVal = b.dataset.category;
+                    return aVal.localeCompare(bVal);
+
+                case 'equipment':
+                    aVal = a.dataset.equipment;
+                    bVal = b.dataset.equipment;
+                    return aVal.localeCompare(bVal);
+
+                default:
+                    return 0;
+            }
+        });
+
+        cards.forEach(card => grid.appendChild(card));
+    },
+
     // Exercise detail view
     renderExerciseDetail(id) {
         const exercise = Models.Exercise.getById(id);
@@ -582,6 +627,12 @@ const App = {
 
             <h2>${exercise.name}</h2>
             <div class="card-meta mb-2">${exercise.category} • ${exercise.equipment} • ${exercise.difficulty}</div>
+
+            ${exercise.imageUrl ? `
+            <div class="mb-2">
+                <img src="${exercise.imageUrl}" alt="${exercise.name}" style="width: 100%; max-width: 600px; height: auto; border: 2px solid var(--border);">
+            </div>
+            ` : ''}
 
             <div class="mb-2">
                 <h3>muscle groups</h3>
@@ -610,6 +661,33 @@ const App = {
                     ? `<ul>${exercise.variants.map(v => `<li><a href="${v.url}" target="_blank" rel="noopener noreferrer">${v.name}</a></li>`).join('')}</ul>`
                     : '<p style="color: #777;">no variants available</p>'}
             </div>
+
+            ${(() => {
+                const relatedExercises = Models.Exercise.getAll()
+                    .filter(ex => ex.id !== exercise.id)
+                    .filter(ex => {
+                        const sharedMuscles = ex.muscleGroups.some(mg => exercise.muscleGroups.includes(mg));
+                        const sameCategory = ex.category === exercise.category;
+                        return sharedMuscles || sameCategory;
+                    })
+                    .slice(0, 6);
+
+                if (relatedExercises.length === 0) return '';
+
+                return `
+                <div class="mb-2">
+                    <h3>related exercises</h3>
+                    <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
+                        ${relatedExercises.map(ex => `
+                            <div class="card" style="cursor: pointer; padding: 1rem;" onclick="window.location.hash = '#exercises/detail/${ex.id}'">
+                                <div class="card-title" style="font-size: 1rem;">${ex.name}</div>
+                                <div class="card-meta" style="font-size: 0.85rem;">${ex.difficulty}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                `;
+            })()}
 
             <div class="flex mt-2" style="margin-top: 2rem;">
                 <button onclick="App.showEditExerciseForm('${id}')" class="btn-secondary">edit exercise</button>
