@@ -35,6 +35,68 @@ const Models = {
 
         delete(id) {
             return DB.delete('exercises', id);
+        },
+
+        // Get workout history for a specific exercise
+        getHistory(exerciseId) {
+            const allWorkouts = DB.getAll('workouts');
+            const history = [];
+
+            allWorkouts.forEach(workout => {
+                const exerciseInWorkout = workout.exercises.find(ex => ex.exerciseId === exerciseId);
+                if (exerciseInWorkout && exerciseInWorkout.sets.length > 0) {
+                    history.push({
+                        workoutId: workout.id,
+                        workoutName: workout.name,
+                        date: workout.date,
+                        sets: exerciseInWorkout.sets
+                    });
+                }
+            });
+
+            // Sort by date, most recent first
+            return history.sort((a, b) => new Date(b.date) - new Date(a.date));
+        },
+
+        // Calculate personal records for an exercise
+        getPersonalRecords(exerciseId) {
+            const history = this.getHistory(exerciseId);
+
+            if (history.length === 0) {
+                return {
+                    maxWeight: 0,
+                    maxReps: 0,
+                    maxVolume: 0,
+                    totalSets: 0,
+                    totalWorkouts: history.length
+                };
+            }
+
+            let maxWeight = 0;
+            let maxReps = 0;
+            let maxVolume = 0;
+            let totalSets = 0;
+
+            history.forEach(session => {
+                session.sets.forEach(set => {
+                    totalSets++;
+                    const weight = set.weight || 0;
+                    const reps = set.reps || 0;
+                    const volume = weight * reps;
+
+                    if (weight > maxWeight) maxWeight = weight;
+                    if (reps > maxReps) maxReps = reps;
+                    if (volume > maxVolume) maxVolume = volume;
+                });
+            });
+
+            return {
+                maxWeight,
+                maxReps,
+                maxVolume,
+                totalSets,
+                totalWorkouts: history.length
+            };
         }
     },
 
