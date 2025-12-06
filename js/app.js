@@ -14,7 +14,7 @@ const App = {
 
         // Handle initial load
         if (!window.location.hash) {
-            window.location.hash = '#exercises';
+            window.location.hash = '#dashboard';
         }
         this.route();
 
@@ -29,6 +29,9 @@ const App = {
         this.updateActiveNav();
 
         switch(view) {
+            case 'dashboard':
+                this.renderDashboard();
+                break;
             case 'workouts':
                 if (params[0] === 'detail' && params[1]) {
                     this.renderWorkoutDetail(params[1]);
@@ -43,11 +46,17 @@ const App = {
                     this.renderExercises();
                 }
                 break;
+            case 'nutrition':
+                this.renderNutrition();
+                break;
+            case 'physiology':
+                this.renderPhysiology();
+                break;
             case 'profile':
                 this.renderProfile();
                 break;
             default:
-                this.renderExercises();
+                this.renderDashboard();
         }
     },
 
