@@ -14,7 +14,7 @@ const App = {
 
         // Handle initial load
         if (!window.location.hash) {
-            window.location.hash = '#exercises';
+            window.location.hash = '#dashboard';
         }
         this.route();
 
@@ -29,6 +29,9 @@ const App = {
         this.updateActiveNav();
 
         switch(view) {
+            case 'dashboard':
+                this.renderDashboard();
+                break;
             case 'workouts':
                 if (params[0] === 'detail' && params[1]) {
                     this.renderWorkoutDetail(params[1]);
@@ -43,11 +46,17 @@ const App = {
                     this.renderExercises();
                 }
                 break;
+            case 'nutrition':
+                this.renderNutrition();
+                break;
+            case 'physiology':
+                this.renderPhysiology();
+                break;
             case 'profile':
                 this.renderProfile();
                 break;
             default:
-                this.renderExercises();
+                this.renderDashboard();
         }
     },
 
@@ -620,6 +629,10 @@ const App = {
             return;
         }
 
+        // Get history and PRs
+        const history = Models.Exercise.getHistory(id);
+        const prs = Models.Exercise.getPersonalRecords(id);
+
         this.render(`
             <div class="mb-2">
                 <a href="#exercises" class="btn-secondary" style="display: inline-block; margin-bottom: 1rem;">← back to exercises</a>
@@ -627,6 +640,31 @@ const App = {
 
             <h2>${exercise.name}</h2>
             <div class="card-meta mb-2">${exercise.category} • ${exercise.equipment} • ${exercise.difficulty}</div>
+
+            ${prs.totalWorkouts > 0 ? `
+            <div class="stats mb-2">
+                <div class="stat">
+                    <div class="stat-value">${prs.maxWeight}kg</div>
+                    <div class="stat-label">max weight</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">${prs.maxReps}</div>
+                    <div class="stat-label">max reps</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">${prs.maxVolume}kg</div>
+                    <div class="stat-label">max volume</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">${prs.totalWorkouts}</div>
+                    <div class="stat-label">workouts</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">${prs.totalSets}</div>
+                    <div class="stat-label">total sets</div>
+                </div>
+            </div>
+            ` : ''}
 
             ${exercise.imageUrl ? `
             <div class="mb-2">
@@ -661,6 +699,56 @@ const App = {
                     ? `<ul>${exercise.variants.map(v => `<li><a href="${v.url}" target="_blank" rel="noopener noreferrer">${v.name}</a></li>`).join('')}</ul>`
                     : '<p style="color: #777;">no variants available</p>'}
             </div>
+
+            ${history.length > 0 ? `
+            <div class="mb-2">
+                <h3>workout history</h3>
+                <p style="color: #777; margin-bottom: 1rem;">Past performances of this exercise across all workouts</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>date</th>
+                            <th>workout</th>
+                            <th>sets</th>
+                            <th>best set</th>
+                            <th>total volume</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${history.map(session => {
+                            // Calculate best set and total volume for this session
+                            let bestSet = { weight: 0, reps: 0 };
+                            let totalVolume = 0;
+
+                            session.sets.forEach(set => {
+                                const volume = (set.weight || 0) * (set.reps || 0);
+                                totalVolume += volume;
+                                if (volume > (bestSet.weight * bestSet.reps)) {
+                                    bestSet = set;
+                                }
+                            });
+
+                            return `
+                                <tr>
+                                    <td>${session.date}</td>
+                                    <td><a href="#workouts/detail/${session.workoutId}">${session.workoutName}</a></td>
+                                    <td>${session.sets.length}</td>
+                                    <td>${bestSet.weight}kg × ${bestSet.reps}</td>
+                                    <td>${totalVolume}kg</td>
+                                    <td><button onclick="window.location.hash = '#workouts/detail/${session.workoutId}'" class="btn-secondary">view</button></td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+            ` : `
+            <div class="mb-2">
+                <h3>workout history</h3>
+                <p style="color: #777;">no workout history yet. add this exercise to a workout to start tracking progress.</p>
+            </div>
+            `}
 
             ${(() => {
                 const relatedExercises = Models.Exercise.getAll()
